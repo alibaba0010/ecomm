@@ -1,0 +1,27 @@
+type Product = record {
+  id : text;
+  name : text;
+  createdAt : nat64;
+  description : text;
+  seller : principal;
+  updatedAt : opt nat64;
+  stock : nat;
+  image : text;
+  price : nat64;
+};
+type ProductPayload = record {
+  name : text;
+  description : text;
+  stock : nat;
+  image : text;
+  price : nat64;
+};
+type _AzleResult = variant { Ok : Product; Err : text };
+type _AzleResult_1 = variant { Ok : vec Product; Err : text };
+service : () -> {
+  addProduct : (ProductPayload) -> (_AzleResult);
+  deleteProduct : (text) -> (_AzleResult);
+  getProduct : (text) -> (_AzleResult) query;
+  getProducts : () -> (_AzleResult_1) query;
+  updateProduct : (text, ProductPayload) -> (_AzleResult);
+}
