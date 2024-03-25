@@ -2,6 +2,8 @@
 import { StableBTreeMap, Vec, Result, Server, nat64, ic } from "azle";
 import { v4 as uuidv4 } from "uuid";
 import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 class User {
   id: string;
@@ -39,25 +41,45 @@ export default Server(() => {
   const app = express();
   app.use(express.json());
   // create a new user
-  app.post("/user/new", (req, res) => {
+  app.post("/user/new", async (req, res) => {
+    const { email, password, username } = req.body;
+    const userOpt = userStorage.get(email);
+
+    if (userOpt)
+      return res.status(400).json({ message: "User already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     const user: User = {
       id: uuidv4(),
-      createdAt: ic.time(), //getCurrentDate()
-      ...req.body,
+      username,
+      email,
+      password: hashedPassword,
+      createdAt: getCurrentDate(),
+      updatedAt: null,
     };
+    const token = jwt.sign({ email: user.email, id: user.id }, "JkjKJkjKJ", {
+      expiresIn: "1h",
+    });
+
     userStorage.insert(user.id, user);
-    res.json(user);
+    res.status(201).json({ username, email, token });
   });
   //login existing user
-  app.post("/user/login", (req, res) => {
-    const { email } = req.body;
+  app.post("/user/login", async (req, res) => {
+    const { email, password } = req.body;
     const user: User = {
       ...req.body,
     };
     const userOpt = userStorage.get(email);
-
+    console.log("UserOpt: ", userOpt);
     if ("None" in userOpt) {
       res.status(404).send(`User with email=${email} not found.`);
+
+      const isPasswordCorrect = await bcrypt.compare(password, password); //userOpt(password);
+
+      if (!isPasswordCorrect)
+        return res.status(400).json({ message: "Invalid credentials" });
     } else {
       res.json(user);
     }
